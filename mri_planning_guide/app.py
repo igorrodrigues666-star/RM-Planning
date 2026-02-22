@@ -363,4 +363,9 @@ def not_found(_): return render_template('404.html'), 404
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    init_db(); seed_data(); app.run(debug=True)
+    init_db(); seed_data(); if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    init_db()
+    seed_data()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
