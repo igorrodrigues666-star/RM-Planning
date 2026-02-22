@@ -1,0 +1,5 @@
+# MRI Planning Guide - Dependencias
+# Execute: pip install -r requirements.txt
+
+Flask>=2.3.0
+Werkzeug>=2.3.0

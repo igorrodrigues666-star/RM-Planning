@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}{% if exam %}Editar{% else %}Novo{% endif %} Exame{% endblock %}
+{% block content %}
+
+<div class="bg-cuf-navy text-white py-8 px-6">
+  <div class="max-w-4xl mx-auto">
+    <a href="{{ url_for('admin_dashboard') }}" class="text-cuf-muted hover:text-white text-xs transition mb-4 inline-block">← Dashboard</a>
+    <h1 class="font-display font-700 text-3xl tracking-wide">{% if exam %}Editar: {{ exam.name }}{% else %}Novo Exame{% endif %}</h1>
+    {% if exam %}<p class="text-cuf-border text-sm mt-1">ID #{{ exam.id }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+  <!-- ══ MAIN EXAM FORM ══ -->
+  <div class="card p-8" style="border-top:3px solid #0071BC;">
+    <h2 class="section-title text-sm mb-6">Dados do Protocolo</h2>
+
+    {# NOTE: This form ends BEFORE any delete image forms to avoid nesting #}
+    <form id="exam-main-form" method="POST" enctype="multipart/form-data" class="space-y-5">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Categoria *</label>
+          <select name="category_id" required class="form-input">
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if exam and exam.category_id==cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Contraste</label>
+          <select name="contrast" class="form-input">
+            {% for opt in ['Sem contraste','Com contraste','Com e sem contraste','Dinâmico com contraste'] %}
+            <option value="{{ opt }}" {% if exam and exam.contrast==opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Nome do Exame *</label>
+        <input type="text" name="name" required value="{{ exam.name if exam else '' }}" placeholder="Ex: RM de Crânio" class="form-input"/>
+      </div>
+
+      <div>
+        <label class="form-label">Descrição Clínica</label>
+        <textarea name="description" rows="3" placeholder="Indicações clínicas e objetivo..." class="form-input resize-none">{{ exam.description if exam else '' }}</textarea>
+      </div>
+
+      <div>
+        <label class="form-label">Planos de Corte</label>
+        <input type="text" name="planes" value="{{ exam.planes if exam else 'Axial, Sagital, Coronal' }}" placeholder="Axial, Sagital, Coronal" class="form-input"/>
+        <p class="text-xs text-cuf-muted mt-1.5">Separe por vírgula. Ex: Axial, Sagital, Coronal</p>
+      </div>
+
+      <div>
+        <label class="form-label">Sequências do Protocolo</label>
+        <textarea name="sequences" rows="8"
+                  placeholder="Uma sequência por linha:&#10;T1 SE Axial&#10;T2 TSE Axial&#10;FLAIR Axial&#10;DWI Axial&#10;..."
+                  class="form-input resize-none font-mono text-sm" style="line-height:1.8;">{% if sequences %}{% for item in sequences %}{{ item.seq.name }}
+{% endfor %}{% endif %}</textarea>
+        <div class="flex items-center justify-between mt-1.5">
+          <p class="text-xs text-cuf-muted">Uma sequência por linha. Após guardar poderá adicionar imagens a cada sequência abaixo.</p>
+          {% if sequences %}<p class="text-xs text-cuf-blue font-semibold">{{ sequences|length }} sequências actuais</p>{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Notas Técnicas</label>
+        <textarea name="technical_notes" rows="5"
+                  placeholder="Parâmetros técnicos, espessura de corte, angulação...&#10;Uma nota por linha."
+                  class="form-input resize-none text-sm">{{ exam.technical_notes if exam else '' }}</textarea>
+      </div>
+
+      <!-- Upload de imagens gerais -->
+      <div>
+        <label class="form-label">Adicionar Imagens Gerais do Exame</label>
+        <div class="border-2 border-dashed border-cuf-border hover:border-cuf-blue rounded-xl p-6 text-center transition-colors cursor-pointer bg-cuf-lighter"
+             onclick="document.getElementById('examImgInput').click()">
+          <svg class="w-8 h-8 text-cuf-muted mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-sm text-cuf-muted">Clique para selecionar imagens gerais</p>
+          <p class="text-xs text-cuf-muted mt-1">PNG, JPG, WEBP · Múltiplas permitidas</p>
+        </div>
+        <input id="examImgInput" type="file" name="images" multiple accept="image/*" class="hidden" onchange="previewFiles(this,'examPreview')"/>
+        <div id="examPreview" class="grid grid-cols-4 gap-2 mt-3"></div>
+      </div>
+
+      <div class="flex gap-3 pt-2 border-t border-cuf-border">
+        <button type="submit" class="btn-primary flex-1">
+          {% if exam %}Guardar Alterações{% else %}Criar Exame{% endif %}
+        </button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary px-6">Cancelar</a>
+      </div>
+    </form>
+    {# ↑ MAIN FORM ENDS HERE — no delete forms inside #}
+  </div>
+
+  <!-- ══ EXISTING GENERAL IMAGES (outside main form!) ══ -->
+  {% if exam_images %}
+  <div class="card p-6">
+    <h2 class="section-title text-sm mb-4">Imagens Gerais Existentes</h2>
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+      {% for img in exam_images %}
+      <div class="relative group rounded-lg overflow-hidden border border-cuf-border">
+        <img src="{{ url_for('uploaded_file', filename=img.filename) }}" class="w-full h-24 object-cover"/>
+        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+          {# Standalone form — NOT nested inside any other form #}
+          <form method="POST" action="{{ url_for('admin_delete_exam_image', img_id=img.id) }}"
+                onsubmit="return confirm('Remover esta imagem?')">
+            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+              ✕ Remover
+            </button>
+          </form>
+        </div>
+        {% if img.caption %}<p class="text-xs text-cuf-muted px-1 py-1 truncate bg-white/90">{{ img.caption }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══ PER-SEQUENCE IMAGE MANAGEMENT (also outside main form) ══ -->
+  {% if exam and sequences %}
+  <div class="card p-8">
+    <div class="mb-2"><h2 class="section-title text-sm flex-1">Imagens por Sequência</h2></div>
+    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-5 text-sm text-amber-800 font-medium">
+      ⚠ Guarde primeiro o exame com as sequências antes de carregar imagens por sequência.
+    </div>
+
+    <div class="space-y-5">
+      {% for item in sequences %}{% set seq=item.seq %}{% set imgs=item.images %}
+      <div class="border border-cuf-border rounded-xl overflow-hidden" id="seq-{{ seq.id }}">
+
+        <!-- Sequence header -->
+        <div class="flex items-center gap-3 px-5 py-3 bg-cuf-lighter border-b border-cuf-border">
+          <div class="w-7 h-7 rounded-lg bg-cuf-blue text-white flex items-center justify-center font-display font-700 text-sm">{{ loop.index }}</div>
+          <p class="font-display font-600 text-cuf-navy flex-1">{{ seq.name }}</p>
+          <span class="badge badge-blue text-xs">{{ imgs|length }} imagem{% if imgs|length!=1 %}ns{% endif %}</span>
+        </div>
+
+        <!-- Existing sequence images — standalone delete forms -->
+        {% if imgs %}
+        <div class="p-4 border-b border-cuf-border">
+          <p class="text-xs text-cuf-muted font-semibold uppercase tracking-wider mb-3">Imagens actuais desta sequência</p>
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {% for img in imgs %}
+            <div class="relative group rounded-lg overflow-hidden border border-cuf-border">
+              <img src="{{ url_for('uploaded_file', filename=img.filename) }}" class="w-full h-20 object-cover"/>
+              {% if img.caption %}<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cuf-navy/80 to-transparent px-1.5 py-1"><p class="text-white text-xs truncate">{{ img.caption }}</p></div>{% endif %}
+              <div class="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                {# Standalone form — no nesting #}
+                <form method="POST" action="{{ url_for('admin_delete_seq_image', img_id=img.id) }}"
+                      onsubmit="return confirm('Remover esta imagem?')">
+                  <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-2 py-1 rounded transition">✕</button>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Upload form for this sequence (its own standalone form) -->
+        <div class="p-4 bg-white">
+          <p class="text-xs text-cuf-muted font-semibold uppercase tracking-wider mb-3">Adicionar imagens a: <span class="text-cuf-navy">{{ seq.name }}</span></p>
+          <form method="POST" action="{{ url_for('admin_upload_seq_image', seq_id=seq.id) }}" enctype="multipart/form-data">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="flex-1">
+                <label class="border-2 border-dashed border-cuf-border hover:border-cuf-blue rounded-lg px-4 py-3 text-center cursor-pointer transition-colors block bg-cuf-lighter" for="seq-img-{{ seq.id }}">
+                  <span class="text-xs text-cuf-muted">📷 Selecionar imagem(ns) de planejamento</span>
+                </label>
+                <input id="seq-img-{{ seq.id }}" type="file" name="images" multiple accept="image/*"
+                       class="hidden" onchange="showSeqPreview(this, {{ seq.id }})"/>
+                <div id="seq-preview-{{ seq.id }}" class="grid grid-cols-4 gap-1.5 mt-2"></div>
+              </div>
+              <div class="sm:w-44">
+                <input type="text" name="caption" placeholder="Legenda (opcional)" class="form-input text-sm"/>
+              </div>
+              <div class="shrink-0">
+                <button type="submit" class="btn-primary w-full sm:w-auto px-5 text-sm" style="height:44px;">Carregar</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% elif exam %}
+  <div class="card p-5 text-center" style="background:#fefce8;border-color:#fde68a;">
+    <p class="text-amber-800 font-semibold text-sm">⚠ Guarde o exame com as sequências para depois poder adicionar imagens por sequência.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewFiles(input, previewId) {
+  const p = document.getElementById(previewId); p.innerHTML = '';
+  Array.from(input.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = e => {
+      const d = document.createElement('div');
+      d.className = 'rounded-lg overflow-hidden border border-cuf-border';
+      d.innerHTML = `<img src="${e.target.result}" class="w-full h-20 object-cover"/><p class="text-xs text-cuf-muted p-1 truncate">${f.name}</p>`;
+      p.appendChild(d);
+    };
+    r.readAsDataURL(f);
+  });
+}
+function showSeqPreview(input, seqId) {
+  const p = document.getElementById('seq-preview-' + seqId); p.innerHTML = '';
+  Array.from(input.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = e => {
+      const d = document.createElement('div');
+      d.className = 'rounded overflow-hidden border border-cuf-border';
+      d.innerHTML = `<img src="${e.target.result}" class="w-full h-14 object-cover"/>`;
+      p.appendChild(d);
+    };
+    r.readAsDataURL(f);
+  });
+}
+if (window.location.hash) {
+  const el = document.getElementById(window.location.hash.slice(1));
+  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+}
+</script>
+{% endblock %}

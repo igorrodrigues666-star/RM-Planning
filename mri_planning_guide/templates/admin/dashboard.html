@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – Admin{% endblock %}
+{% block content %}
+<div class="bg-cuf-navy text-white py-8 px-6">
+  <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-4">
+    <div>
+      <p class="text-cuf-muted text-xs tracking-widest uppercase mb-1">Painel Administrativo</p>
+      <h1 class="font-display font-700 text-3xl tracking-wide">Gestão de Conteúdo</h1>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ url_for('admin_new_category') }}" class="btn-secondary text-sm" style="border-color:rgba(255,255,255,.3);color:white;">+ Categoria</a>
+      <a href="{{ url_for('admin_new_exam') }}" class="btn-primary text-sm">+ Novo Exame</a>
+    </div>
+  </div>
+</div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Stats -->
+  <div class="grid grid-cols-3 gap-4 mb-8">
+    <div class="card p-5 text-center"><p class="text-xs text-cuf-muted font-semibold uppercase tracking-wider mb-1">Categorias</p><p class="font-display font-700 text-3xl text-cuf-navy">{{ total_cats }}</p></div>
+    <div class="card p-5 text-center"><p class="text-xs text-cuf-muted font-semibold uppercase tracking-wider mb-1">Exames</p><p class="font-display font-700 text-3xl text-cuf-blue">{{ total_exams }}</p></div>
+    <div class="card p-5 flex items-center justify-center"><a href="{{ url_for('index') }}" class="text-cuf-blue hover:text-cuf-navy transition text-sm font-semibold flex items-center gap-1">↗ Ver Site</a></div>
+  </div>
+  <!-- Categories -->
+  <div class="space-y-4">
+    {% for item in cats_data %}{% set cat=item.cat %}{% set exams=item.exams %}
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 bg-cuf-lighter border-b border-cuf-border" style="border-left:4px solid {{ cat.color }};">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-display font-700 text-sm" style="background:{{ cat.color }};">RM</div>
+          <div>
+            <h2 class="font-display font-700 text-cuf-navy text-base">{{ cat.name }}</h2>
+            <p class="text-xs text-cuf-muted">Região: {{ cat.region_key }} · {{ exams|length }} exame{% if exams|length!=1 %}s{% endif %}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="{{ url_for('admin_edit_category', cat_id=cat.id) }}" class="btn-secondary text-xs py-1.5 px-3">✎ Editar</a>
+          <form method="POST" action="{{ url_for('admin_delete_category', cat_id=cat.id) }}" onsubmit="return confirm('Excluir {{ cat.name }} e todos os seus exames?')">
+            <button type="submit" class="btn-danger">✕</button>
+          </form>
+        </div>
+      </div>
+      {% if exams %}
+      <div class="divide-y divide-cuf-border">
+        {% for exam in exams %}
+        <div class="flex items-center justify-between px-6 py-3 hover:bg-cuf-lighter transition group">
+          <div>
+            <p class="font-semibold text-cuf-navy text-sm group-hover:text-cuf-blue transition">{{ exam.name }}</p>
+            <p class="text-xs text-cuf-muted mt-0.5">{{ exam.contrast }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="{{ url_for('exam_detail', exam_id=exam.id) }}" class="text-cuf-muted hover:text-cuf-blue transition text-xs px-2" target="_blank">👁</a>
+            <a href="{{ url_for('admin_edit_exam', exam_id=exam.id) }}" class="btn-secondary text-xs py-1.5 px-3">✎</a>
+            <form method="POST" action="{{ url_for('admin_delete_exam', exam_id=exam.id) }}" onsubmit="return confirm('Excluir este exame?')">
+              <button type="submit" class="btn-danger">✕</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="px-6 py-3 bg-cuf-lighter border-t border-cuf-border">
+        <a href="{{ url_for('admin_new_exam') }}" class="text-cuf-blue hover:text-cuf-navy text-xs font-semibold transition">+ Adicionar exame</a>
+      </div>
+      {% else %}
+      <div class="px-6 py-5 text-center">
+        <p class="text-sm text-cuf-muted mb-2">Nenhum exame nesta categoria.</p>
+        <a href="{{ url_for('admin_new_exam') }}" class="text-cuf-blue text-sm font-semibold hover:underline">+ Adicionar</a>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card p-12 text-center">
+      <h3 class="font-display font-700 text-cuf-navy text-xl mb-3">Nenhuma categoria</h3>
+      <a href="{{ url_for('admin_new_category') }}" class="btn-primary inline-block">+ Criar Categoria</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
